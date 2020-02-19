@@ -1,0 +1,2 @@
+README for ML_project
+This repository was created to fulfill a requirement for the Coursera Data Science - Machine Learning class.  For this class the training and data files at https://d396qusza40orc.cloudfront.net/predmachlearn were downloaded, cleaned, preprocessed (scaling, centering, and PCA), and used to train & test a Random Forest classifier.  Please read the .md or .pdf files for details on this process.

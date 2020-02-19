@@ -1,0 +1,134 @@
+
+---
+title: "ML project"
+author: "Jeff Dean"
+date: "2/14/2020"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(dplyr)
+```
+
+## R Markdown
+
+This is code and documentation for the Coursera Data Science machine learning project.  The goal of the project is to use sensor data to train a classifier to distinguish between different exercises that were performed.  To accomplish this, the data sets were downloaded and input into data frames.
+
+```{r data_download, cache=TRUE, message=FALSE}
+trainingURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingURL  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training <- read.csv(trainingURL)
+testing  <- read.csv(testingURL)
+```
+
+## Data Assessment
+The data sets start with 160 columns or variables, in which many are either unrelated to solving the classification problem or are uninformative.  Let's start by looking at part of the data summary:
+```{r data_summary}
+summary(training[,1:16])
+```
+If we look at the first eight columns, we can see values that should be irrelevant to identifying the activity such as user_name, timestamps, and information on the data window. We can also see that some of variables contain mostly #DIV/0! or NA values, which we must remove from consideration.  
+
+## Data Cleaning
+To deal with these irrelevant variables, we remove them from the training and testing data sets. Some columns removed were identified as useless for classification based on the summary (mostly #DIV/0! values) and some by their lack of relevancy to the classification problem.
+```{r cleaning, cache=TRUE}
+# ID no information columns
+useless_cols <- c("X", "user_name", "raw_timestamp_part_1", 
+    "raw_timestamp_part_2","cvtd_timestamp","new_window", "num_window", 
+    "kurtosis_yaw_belt", "skewness_yaw_belt", "amplitude_yaw_belt", 
+    "kurtosis_yaw_dumbbell", "skewness_yaw_dumbbell", "amplitude_yaw_dumbbell",
+    "kurtosis_yaw_forearm", "skewness_yaw_forearm", "amplitude_yaw_forearm")          
+training <- select(training, -useless_cols)         # remove those columns
+testing  <- select(testing, -useless_cols)
+
+```
+
+The columns with high proportions of NA values can be identified by determining what fraction of the values are NA.
+```{r id_NAs}
+library(ggplot2)
+
+# compute the fraction of NAs per column
+vals <- sapply(names(training), function(Col){mean(sapply(training[,Col], is.na))})
+barplot(vals, names.arg=1:length(vals), xlab="Column Index", 
+        ylab="Fraction of NAs", ylim=c(0,1), main="Fraction of NAs per Column")
+```
+
+
+As can be seen, some of the variables hold values that are almost 98% NAs!  We identified and dropped those columns where the fraction of NA values exceeded 90%.  The data in the training and test sets were then converted to a data matrix to make all values numeric (ensuring that training and testing columns are the same type), and then converted back to data frames.
+
+```{r NA_removal, cache=TRUE} 
+numericize <- function(df) {  # convert data frame to data matrix and back.
+  df <- data.matrix(df)       # forces all values to be numeric type
+  data.frame(df)
+}
+
+classe <- training$classe          # save the classe values
+training <- numericize(training)   # make all training columns numeric values 
+testing <- numericize(testing)     # make all testing columns numeric values
+
+clean_nas <- function(Data){  # identify all columns that are not all NAs
+  nas <- sapply(names(Data), function(Col){mean(sapply(Data[,Col], is.na))})
+  names(nas[nas<0.9])        # return the names of the lower NA columns
+}
+
+lenNames <- length(names(testing))         # get # of testing columns
+keep <- clean_nas(testing[,-lenNames])     # get cols in testing w/ fewer NAs
+training <- training[,keep]                # Drop high NA columns from testing
+testing <- testing[,keep]                  # Drop high NA cols in training
+
+```
+
+## Data Preprocessing
+With the non-useful variables removed, we still have 52 columns in the data sets. To reduce the dimensionality of the data sets further, we apply PCA.  By default, the PCA routine in caret only retains enough columns to explain 95% of the observed variance.  
+```{r dimension_reduction, message=FALSE, cache=TRUE}
+library(caret)
+preObj <- preProcess(training[,-53], method=c("center","scale"))
+scaled_train <- predict(preObj, training[,-53])
+scaled_test <- predict(preObj, testing)
+
+preProc <- preProcess(scaled_train, method="pca")
+pca_train <- predict(preProc, scaled_train)
+pca_test <- predict(preProc, scaled_test)
+```
+
+# Classification
+With the data cleaned and dimensionality reduced to 25, we then moved on to the classification problem.  We applied a Random Forest classifier, using 5-fold cross-validation in the training data to reduce bias in the classifier outputs.  Training was done in parallel to reduce processing time.
+
+```{r classification, cache=TRUE, message=FALSE }
+library(parallel)
+library(doParallel)
+
+set.seed(314159)
+cluster <- makeCluster(5)
+registerDoParallel(cluster)
+
+Cols <- names(pca_train)
+tControl <- trainControl(method = "cv",
+                           number = 5,
+                           allowParallel = TRUE)
+
+modfit <- train(pca_train, classe, method='rf', na.action = na.omit, 
+                       proxy=TRUE, trControl = tControl)
+
+stopCluster(cluster)
+registerDoSEQ()
+modfit
+```
+
+Given that the classifier was able to correctly identify 98% of the correct classes in the training data, I expect that the accuracy on the testing data should be above 90%
+
+## Results
+We can test the accuracy of the classifier on the training data, to see how well it trained:
+```{r check}
+table(classe, predict(modfit, pca_train))
+```
+So far, so good.  Let's check the classifier's predictions on the test data:
+```{r predict}
+predict(modfit, pca_test)
+```
+
+These are my predictions for the test data set.  We'll see how accurate they were after the project is submitted.
+
