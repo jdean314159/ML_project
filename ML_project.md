@@ -49,14 +49,22 @@ summary(training[,1:16])
     ##  3rd Qu.: 14.9000   3rd Qu.:  12.90   3rd Qu.:18.00    -0.021024:    1   
     ##  Max.   : 60.3000   Max.   : 179.00   Max.   :29.00    -0.025513:    1   
     ##                                                        (Other)  :  391   
-    ##  kurtosis_picth_belt kurtosis_yaw_belt skewness_roll_belt skewness_roll_belt.1
-    ##           :19216            :19216              :19216             :19216     
-    ##  #DIV/0!  :   32     #DIV/0!:  406     #DIV/0!  :    9    #DIV/0!  :   32     
-    ##  47.000000:    4                       0.000000 :    4    0.000000 :    4     
-    ##  -0.150950:    3                       0.422463 :    2    -2.156553:    3     
-    ##  -0.684748:    3                       -0.003095:    1    -3.072669:    3     
-    ##  -1.750749:    3                       -0.010002:    1    -6.324555:    3     
-    ##  (Other)  :  361                       (Other)  :  389    (Other)  :  361
+    ##  kurtosis_picth_belt kurtosis_yaw_belt skewness_roll_belt
+    ##           :19216            :19216              :19216   
+    ##  #DIV/0!  :   32     #DIV/0!:  406     #DIV/0!  :    9   
+    ##  47.000000:    4                       0.000000 :    4   
+    ##  -0.150950:    3                       0.422463 :    2   
+    ##  -0.684748:    3                       -0.003095:    1   
+    ##  -1.750749:    3                       -0.010002:    1   
+    ##  (Other)  :  361                       (Other)  :  389   
+    ##  skewness_roll_belt.1
+    ##           :19216     
+    ##  #DIV/0!  :   32     
+    ##  0.000000 :    4     
+    ##  -2.156553:    3     
+    ##  -3.072669:    3     
+    ##  -6.324555:    3     
+    ##  (Other)  :  361
 
 If we look at the first eight columns, we can see values that should be
 irrelevant to identifying the activity such as user\_name, timestamps,
